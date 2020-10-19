@@ -19,9 +19,14 @@ package flock
 import (
 	"context"
 	"os"
+	"path/filepath"
 	"runtime"
 	"sync"
 	"time"
+)
+
+const (
+	_lockerFileName = "file.lock"
 )
 
 // Flock is the struct type to handle file locking. All fields are unexported,
@@ -40,6 +45,10 @@ func New(path string) *Flock {
 	return &Flock{path: path}
 }
 
+func NewDirLocker(path string) *Flock {
+	return &Flock{path: filepath.Join(path, _lockerFileName)}
+}
+
 // NewFlock returns a new instance of *Flock. The only parameter
 // it takes is the path to the desired lockfile.
 //
@@ -54,6 +63,16 @@ func NewFlock(path string) *Flock {
 // It will not remove the file from disk, that's up to your application.
 func (f *Flock) Close() error {
 	return f.Unlock()
+}
+
+// Release release the lock and remove file from disk
+// It is useful when created by NewDirLocker
+func (f *Flock) Release() error {
+	err := f.Unlock()
+	if err != nil {
+		return err
+	}
+	return os.Remove(f.path)
 }
 
 // Path returns the path as provided in NewFlock().
